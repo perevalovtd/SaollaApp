@@ -1,0 +1,21 @@
+# 1) Игнорировать все файлы и папки
+*
+
+# 2) Но не игнорировать директории (чтобы Git мог «дойти» до нужных)
+!*/
+
+# 3) Не игнорировать нужную подпапку и всё её содержимое
+!app/src/main/java/com/example/medievalnotes
+!app/src/main/java/com/example/medievalnotes/**
+
+!app/src/main/res/raw/
+!app/src/main/res/raw/**
+
+!app/src/main/assets/
+!app/src/main/assets/**
+
+!.gitignore
+
+!app/build.gradle.kts
+
+!app/src/main/AndroidManifest.xml
