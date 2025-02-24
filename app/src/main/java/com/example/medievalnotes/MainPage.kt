@@ -16,6 +16,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 
+import com.example.medievalnotes.MainViewModel
+import com.example.medievalnotes.PlaybackMode  // <-- убедитесь, что у вас есть enum PlaybackMode в VM
+
 @Composable
 fun MainPage(
     navController: NavHostController,
@@ -40,7 +43,7 @@ fun MainPage(
             .fillMaxSize()
             .background(backgroundColor)
     ) {
-        // Кнопка темы
+        // Кнопка темы (как и было)
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -62,6 +65,36 @@ fun MainPage(
             verticalArrangement = Arrangement.spacedBy(24.dp),
             modifier = Modifier.align(Alignment.Center)
         ) {
+
+            // =========== НОВАЯ СЕКЦИЯ: Playback (App/Guitar) ===========
+            // Заголовок "Playback"
+            Text("Playback", color = textColor)
+
+            // Ряд из двух "радиокнопок": App слева, Guitar справа
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                // Кнопка App
+                PlaybackRadioOption(
+                    label = "App",
+                    isSelected = (vm.playbackMode == PlaybackMode.APP),
+                    onClick = { vm.changePlaybackMode(PlaybackMode.APP) },
+                    containerColor = buttonContainerColor,
+                    contentColor = buttonContentColor
+                )
+
+                // Кнопка Guitar
+                PlaybackRadioOption(
+                    label = "Guitar",
+                    isSelected = (vm.playbackMode == PlaybackMode.GUITAR),
+                    onClick = { vm.changePlaybackMode(PlaybackMode.GUITAR) },
+                    containerColor = buttonContainerColor,
+                    contentColor = buttonContentColor
+                )
+            }
+            // =========== КОНЕЦ НОВОЙ СЕКЦИИ ===========
+
             // Song
             Button(
                 onClick = { navController.navigate("page2") },
@@ -128,5 +161,26 @@ fun MainPage(
                 Text("Play")
             }
         }
+    }
+}
+
+// Небольшая вспомогательная "радиокнопка", стилизованная как Button
+@Composable
+fun PlaybackRadioOption(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isSelected) containerColor else Color.Transparent,
+            contentColor = if (isSelected) contentColor else containerColor
+        ),
+        border = null
+    ) {
+        Text(label)
     }
 }

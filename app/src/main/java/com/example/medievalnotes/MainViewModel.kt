@@ -17,7 +17,15 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 
+
+enum class PlaybackMode { APP, GUITAR }
+
 class MainViewModel : ViewModel() {
+
+    var playbackMode by mutableStateOf(PlaybackMode.APP)
+        private set
+
+
 
     var songList by mutableStateOf<List<SongItem>>(emptyList())
         private set
@@ -48,8 +56,12 @@ class MainViewModel : ViewModel() {
     private var currentlyLoadedIndex: Int? = null
 
     // mp3Names from arrays.xml
-    private var mp3Names: Array<String> = emptyArray()
+    //private var mp3Names: Array<String> = emptyArray()
 
+
+    fun changePlaybackMode(mode: PlaybackMode) {
+        playbackMode = mode
+    }
 
 
     override fun onCleared() {
@@ -108,23 +120,30 @@ class MainViewModel : ViewModel() {
     fun startPlaying(context: Context) {
         val idx = selectedSongIndex
         if (idx !in songList.indices) return
-        // Ноты
+
+        // 1) Загружаем .txt => currentSongInfo => ноты
         val fileName = songList[idx].fileName
         currentSongInfo = readSongInfoFromAssets(context, fileName)
         currentTime = 0f
         isPlaying = true
 
-        // Музыка (с нуля)
+        // 2) Создаём/запускаем ExoPlayer
         startMusic(context, idx, fromPage2 = false)
 
-        sendUdpPlayMessage()
+        if (playbackMode == PlaybackMode.GUITAR) {
+            // Выключаем звук
+            exoPlayer?.volume = 0f
+            // Отправляем UDP
+            sendUdpPlayMessage()
+        }
     }
+
 
     private fun sendUdpPlayMessage() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
 
-                val ipStr = "192.168.1.50"
+                val ipStr = "192.168.4.1"
                 val inet = InetAddress.getByName(ipStr)
 
                 // random port
