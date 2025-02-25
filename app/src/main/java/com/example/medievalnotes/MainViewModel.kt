@@ -256,7 +256,9 @@ class MainViewModel : ViewModel() {
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                Log.d("UDPServer", "Starting server on port 12345")
                 val socket = DatagramSocket(12345) // <-- слушаем порт 12345
+                Log.d("UDPServer", "DatagramSocket created ok")
                 val buffer = ByteArray(1024)
 
                 while (true) {
