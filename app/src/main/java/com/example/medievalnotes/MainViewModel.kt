@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import kotlinx.coroutines.withContext
 
 
 enum class PlaybackMode { APP, GUITAR }
@@ -243,6 +244,58 @@ class MainViewModel : ViewModel() {
         exoPlayer = newPlayer
     }
 
+    /**
+     * Запускаем корутину, слушающую UDP порт 12345.
+     * Если приходит "play" => handleUdpPlay
+     * Если приходит "stop" => handleUdpStop
+     */
+    fun startUdpServer(
+        context: Context,
+        onNavigateToPage3: () -> Unit,
+        onNavigateToPage1: () -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val socket = DatagramSocket(12345) // <-- слушаем порт 12345
+                val buffer = ByteArray(1024)
+
+                while (true) {
+                    val packet = DatagramPacket(buffer, buffer.size)
+                    socket.receive(packet)
+                    val msg = packet.data.decodeToString(
+                        endIndex = packet.length
+                    ).trim()
+
+                    Log.d("UDPServer", "Received message: '$msg'")
+
+                    when (msg.lowercase()) {
+                        "play" -> {
+                            // вызываем handleUdpPlay в главном потоке
+                            withContext(Dispatchers.Main) {
+                                handleUdpPlay(context) {
+                                    onNavigateToPage3()
+                                }
+                            }
+                        }
+                        "stop" -> {
+                            withContext(Dispatchers.Main) {
+                                handleUdpStop {
+                                    onNavigateToPage1()
+                                }
+                            }
+                        }
+                        else -> {
+                            // ignore
+                            Log.d("UDPServer", "Unknown message: '$msg'")
+                        }
+                    }
+                }
+            } catch(e: Exception) {
+                Log.e("UDPServer", "UDP server error: ${e.message}")
+            }
+        }
+    }
+
 
 
 
@@ -347,6 +400,77 @@ class MainViewModel : ViewModel() {
         }
         return res
     }
+
+    /**
+     * Вызывается, когда по UDP пришла команда "play"
+     * Логика:
+     *  - Если уже isPlaying => остановить и начать заново
+     *    (останемся на странице с нотами, не трогаем навигацию)
+     *  - Если не isPlaying => запустить, как будто нажали Play
+     *    и попросить активити перейти на стр.3
+     */
+    fun handleUdpPlay(context: Context, onNavigateToPage3: () -> Unit) {
+        if (isPlaying) {
+            // Уже идёт воспроизведение => перезапустим с начала
+            stopPlayingNoNavigation()
+            startPlayingNoNavigation(context)
+            // Остаёмся на странице нот (не выходим на стр.1),
+            // значит никаких onNavigateToPage3 вызывать не нужно
+        } else {
+            // Если не играло => запустить, + перейти на стр.3
+            startPlayingNoNavigation(context)
+            onNavigateToPage3()
+        }
+    }
+
+    /**
+     * Вызывается, когда по UDP пришла команда "stop"
+     * Логика:
+     *  - Если сейчас isPlaying => остановить + перейти на стр.1
+     *  - Иначе (не играет) => ничего не делать
+     */
+    fun handleUdpStop(onNavigateToPage1: () -> Unit) {
+        if (isPlaying) {
+            stopPlaying()
+            // перейти на стр.1
+            onNavigateToPage1()
+        }
+    }
+
+    /**
+     * Дополнительная функция: запускает ноты/музыку (как startPlaying),
+     * НО без перехода на страницу 3. (сохраняем логику)
+     */
+    private fun startPlayingNoNavigation(context: Context) {
+        val idx = selectedSongIndex
+        if (idx !in songList.indices) return
+
+        // Загружаем .txt => currentSongInfo => ноты
+        val fileName = songList[idx].fileName
+        currentSongInfo = readSongInfoFromAssets(context, fileName)
+        currentTime = 0f
+        isPlaying = true
+
+        // Создаём + запускаем ExoPlayer
+        startMusic(context, idx, fromPage2 = false)
+
+        // Если Guitar => mute + send UDP
+        if (playbackMode == PlaybackMode.GUITAR) {
+            exoPlayer?.volume = 0f
+            sendUdpPlayMessage()
+        }
+    }
+
+    /**
+     * Останавливаем без навигации, но сбрасываем isPlaying,
+     * currentTime = 0 (если нужно).
+     */
+    private fun stopPlayingNoNavigation() {
+        isPlaying = false
+        currentTime = 0f
+        stopMusic()
+    }
+
 }
 
 data class NoteDrawInfo(
