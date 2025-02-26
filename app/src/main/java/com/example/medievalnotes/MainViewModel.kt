@@ -17,6 +17,9 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+
 
 
 enum class PlaybackMode { APP, GUITAR }
@@ -56,8 +59,26 @@ class MainViewModel : ViewModel() {
     private var exoPlayer: ExoPlayer? = null
     private var currentlyLoadedIndex: Int? = null
 
+    private var statsJob: Job? = null
+
+    // Для отправки статистики (IP, порт)
+    private val statsIpStr = "192.168.4.1"
+    private val statsPort = 12345
+
+
     // mp3Names from arrays.xml
     //private var mp3Names: Array<String> = emptyArray()
+
+    init {
+        // Запускаем job, которое каждые 5 сек посылает статистику,
+        // пока ViewModel жив (пока приложение открыто).
+        statsJob = viewModelScope.launch {
+            while (true) {
+                delay(5000)
+                sendUdpStatistics()  // вызовем новую функцию (см. ниже)
+            }
+        }
+    }
 
 
     fun changePlaybackMode(mode: PlaybackMode) {
@@ -86,6 +107,7 @@ class MainViewModel : ViewModel() {
 
     fun selectSong(index: Int) {
         selectedSongIndex = index
+        sendUdpStatistics()
     }
 
     fun toggleDarkTheme() {
@@ -99,10 +121,12 @@ class MainViewModel : ViewModel() {
             val params = PlaybackParameters(tempo, 1f)
             p.playbackParameters = params
         }
+        sendUdpStatistics()
     }
 
     fun updateDemoMode(value: Boolean) {
         demoMode = value
+        sendUdpStatistics()
     }
 
     fun getSelectedFileName(): String? {
@@ -136,6 +160,36 @@ class MainViewModel : ViewModel() {
             exoPlayer?.volume = 0f
             // Отправляем UDP
             sendUdpPlayMessage()
+        }
+        sendUdpStatistics()
+    }
+
+
+    /****
+     * Отправляет статистику: "X Y Z"
+     * X = (selectedSongIndex+1) (номер песни, 1-based)
+     * Y = tempo * 100 (округлён до int)
+     * Z = 1 если demoMode=true, иначе 0
+     */
+    private fun sendUdpStatistics() {
+        val songNumber = (selectedSongIndex + 1).coerceAtLeast(1)
+        val tempoPercent = (tempo * 100).toInt()
+        val demoInt = if (demoMode) 1 else 0
+        val message = "stat $songNumber $tempoPercent $demoInt"
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val inet = InetAddress.getByName(statsIpStr)
+                val data = message.toByteArray()
+
+                DatagramSocket().use { socket ->
+                    val packet = DatagramPacket(data, data.size, inet, statsPort)
+                    socket.send(packet)
+                }
+                Log.d("UDPStats", "Sent stats: '$message' to $statsIpStr:$statsPort")
+            } catch(e: Exception) {
+                Log.e("UDPStats", "UDP stats error: ${e.message}")
+            }
         }
     }
 
@@ -386,7 +440,7 @@ class MainViewModel : ViewModel() {
         val range = max(1, maxN - minN)
 
         val noteWidthPx = 30f
-        val noteHeightPx = 100f
+        val noteHeightPx = 50f
         val res = mutableListOf<NoteDrawInfo>()
 
         for (event in info.events) {
