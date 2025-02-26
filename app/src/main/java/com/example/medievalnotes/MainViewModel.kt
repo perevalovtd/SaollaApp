@@ -19,12 +19,73 @@ import java.net.InetAddress
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import android.content.SharedPreferences
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 
 
 enum class PlaybackMode { APP, GUITAR }
 
 class MainViewModel : ViewModel() {
+
+
+    private val PREFS_NAME = "app_config"       // название файла SharedPreferences
+    private val PREFS_KEY_JSON = "config_json"  // ключ, где хранить JSON
+
+    /**
+     * Сохранить текущее состояние (Dark/Light, номер песни, темп, режим Playback, DemoMode)
+     * в JSON и записать в SharedPreferences.
+     */
+    fun saveConfigToFile(context: Context) {
+        // 1) Формируем JSON-объект
+        val jsonObj = JSONObject().apply {
+            put("isDarkTheme", isDarkTheme)
+            put("selectedSongIndex", selectedSongIndex)
+            put("tempo", tempo)
+            put("playbackMode", playbackMode.name)  // .name для enum
+            put("demoMode", demoMode)
+        }
+
+        // 2) Получаем SharedPreferences
+        val prefs: SharedPreferences =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+        // 3) Пишем JSON строку
+        prefs.edit()
+            .putString(PREFS_KEY_JSON, jsonObj.toString())
+            .apply()
+    }
+
+    /**
+     * Загрузить JSON из SharedPreferences, распарсить и применить к полям
+     */
+    fun loadConfigFromFile(context: Context) {
+        val prefs: SharedPreferences =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+        // Читаем строку JSON
+        val jsonString = prefs.getString(PREFS_KEY_JSON, null) ?: return
+
+        try {
+            val jsonObj = JSONObject(jsonString)
+
+            isDarkTheme = jsonObj.optBoolean("isDarkTheme", false)
+            selectedSongIndex = jsonObj.optInt("selectedSongIndex", -1)
+            tempo = jsonObj.optDouble("tempo", 1.0).toFloat()
+
+            val modeStr = jsonObj.optString("playbackMode", PlaybackMode.APP.name)
+            playbackMode = PlaybackMode.valueOf(modeStr)
+
+            demoMode = jsonObj.optBoolean("demoMode", false)
+
+        } catch(e: Exception) {
+            e.printStackTrace()
+            Log.e("Config", "Error parsing config JSON: ${e.message}")
+        }
+    }
+
 
     var playbackMode by mutableStateOf(PlaybackMode.APP)
         private set
@@ -81,9 +142,12 @@ class MainViewModel : ViewModel() {
     }
 
 
-    fun changePlaybackMode(mode: PlaybackMode) {
+
+    fun changePlaybackMode(context: Context, mode: PlaybackMode) {
         playbackMode = mode
+        saveConfigToFile(context)
     }
+
 
 
     override fun onCleared() {
@@ -105,16 +169,18 @@ class MainViewModel : ViewModel() {
         //mp3Names = context.resources.getStringArray(R.array.my_songs_array)
     }
 
-    fun selectSong(index: Int) {
+    fun selectSong(context: Context, index: Int) {
         selectedSongIndex = index
+        saveConfigToFile(context)
         sendUdpStatistics()
     }
 
-    fun toggleDarkTheme() {
+    fun toggleDarkTheme(context: Context) {
         isDarkTheme = !isDarkTheme
+        saveConfigToFile(context) // сохранить в файл
     }
 
-    fun updateTempo(value: Float) {
+    fun updateTempo(context: Context, value: Float) {
         tempo = value
         // Меняем скорость, если плеер активен
         exoPlayer?.let { p ->
@@ -122,11 +188,13 @@ class MainViewModel : ViewModel() {
             p.playbackParameters = params
         }
         sendUdpStatistics()
+        saveConfigToFile(context)
     }
 
-    fun updateDemoMode(value: Boolean) {
+    fun updateDemoMode(context: Context, value: Boolean) {
         demoMode = value
         sendUdpStatistics()
+        saveConfigToFile(context)
     }
 
     fun getSelectedFileName(): String? {

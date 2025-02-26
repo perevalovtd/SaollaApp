@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.compose.ui.platform.LocalContext
+
 
 @Composable
 fun SongSelectionPage(
@@ -54,12 +56,14 @@ fun SongSelectionPage(
                 val isSelected = (index == vm.selectedSongIndex)
                 val bg = if(isSelected) btnContainer else Color.Transparent
 
+                val context = LocalContext.current
+
                 Box(
                     modifier= Modifier
                         .fillMaxWidth()
                         .background(bg)
                         .clickable {
-                            vm.selectSong(index)
+                            vm.selectSong(context, index)
                         }
                         .padding(8.dp)
                 ) {

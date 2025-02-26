@@ -16,8 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 
-import com.example.medievalnotes.MainViewModel
-import com.example.medievalnotes.PlaybackMode  // <-- убедитесь, что у вас есть enum PlaybackMode в VM
+
 
 @Composable
 fun MainPage(
@@ -49,14 +48,15 @@ fun MainPage(
                 .align(Alignment.TopEnd)
                 .padding(8.dp)
         ) {
+
             Button(
-                onClick = { vm.toggleDarkTheme() },
+                onClick = { vm.toggleDarkTheme(context) },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = themeButtonContainer,
                     contentColor = themeButtonContent
                 )
             ) {
-                Text(themeButtonText)
+                Text(if (vm.isDarkTheme) "Light" else "Dark")
             }
         }
 
@@ -79,7 +79,7 @@ fun MainPage(
                 PlaybackRadioOption(
                     label = "App",
                     isSelected = (vm.playbackMode == PlaybackMode.APP),
-                    onClick = { vm.changePlaybackMode(PlaybackMode.APP) },
+                    onClick = { vm.changePlaybackMode(context, PlaybackMode.APP) },
                     containerColor = buttonContainerColor,
                     contentColor = buttonContentColor
                 )
@@ -88,7 +88,7 @@ fun MainPage(
                 PlaybackRadioOption(
                     label = "Guitar",
                     isSelected = (vm.playbackMode == PlaybackMode.GUITAR),
-                    onClick = { vm.changePlaybackMode(PlaybackMode.GUITAR) },
+                    onClick = { vm.changePlaybackMode(context, PlaybackMode.GUITAR) },
                     containerColor = buttonContainerColor,
                     contentColor = buttonContentColor
                 )
@@ -118,7 +118,7 @@ fun MainPage(
                     Box(
                         modifier = Modifier
                             .padding(8.dp)
-                            .clickable { vm.updateTempo(t) }
+                            .clickable { vm.updateTempo(context, t) }
                             .background(
                                 if (vm.tempo == t) buttonContainerColor else Color.Transparent
                             )
@@ -133,12 +133,12 @@ fun MainPage(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Demo mode:", color = textColor,
                     modifier = Modifier.clickable {
-                        vm.updateDemoMode(!vm.demoMode)
+                        vm.updateDemoMode(context, !vm.demoMode)
                     }
                 )
                 Checkbox(
                     checked = vm.demoMode,
-                    onCheckedChange = { vm.updateDemoMode(it) },
+                    onCheckedChange = { vm.updateDemoMode(context, it) },
                     colors = CheckboxDefaults.colors(
                         checkedColor = checkBoxBoxColor,
                         uncheckedColor = checkBoxBoxColor,

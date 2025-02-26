@@ -17,6 +17,9 @@ class MainActivity : ComponentActivity() {
 
         mainViewModel.loadSongList(this)
 
+        // Загрузить конфиг из JSON
+        mainViewModel.loadConfigFromFile(this)   // <-- (НОВОЕ)
+
         setContent {
             val navController = rememberNavController()
 
