@@ -309,7 +309,7 @@ class MainViewModel : ViewModel() {
         if (currentlyLoadedIndex == null || currentlyLoadedIndex != idx || exoPlayer == null) {
             // Значит, пользователь переключил песню
             // или плеер не был инициализирован => загружаем c нуля
-            loadSongAndPlay(context, idx)
+            loadSongAndPlay(context, idx, true)
             return
         }
 
@@ -328,7 +328,7 @@ class MainViewModel : ViewModel() {
      * Загружает песню с индексом idx "с нуля", начинает проигрывать
      * (обнуление предыдущего плеера, создание нового)
      */
-    private fun loadSongAndPlay(context: Context, idx: Int) {
+    private fun loadSongAndPlay(context: Context, idx: Int, isPreview: Boolean = false) {
         // 1) Останавливаем и освобождаем предыдущий
         exoPlayer?.stop()
         exoPlayer?.release()
@@ -355,9 +355,10 @@ class MainViewModel : ViewModel() {
         newPlayer.prepare()
 
         // 4) Применяем громкость, скорость
-        newPlayer.volume = 0.8f
-        val params = PlaybackParameters(tempo, 1f)
+        val effectiveTempo = if (isPreview) 1.0f else tempo
+        val params = PlaybackParameters(effectiveTempo, 1f)
         newPlayer.playbackParameters = params
+        newPlayer.volume = 0.8f
 
         // 5) Старт с нуля
         newPlayer.seekTo(0)  // на всякий случай
