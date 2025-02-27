@@ -89,7 +89,7 @@ fun SongSelectionPage(
                     contentColor=btnContent
                 )
             ) {
-                Text("Play")
+                Text("Preview")
                 // при повторном нажатии,
                 // если песня playing => pause,
                 // если paused => resume,
