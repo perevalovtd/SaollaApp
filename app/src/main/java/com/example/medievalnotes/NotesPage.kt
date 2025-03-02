@@ -76,7 +76,8 @@ fun NotesPage(
         // Проверяем все events
         songInfo?.events?.forEach { event ->
             val tSec = event.timeSec
-            if (currentTime >= tSec && tSec !in vibratedSet) {
+            val triggerTime = (tSec - 0.075f).coerceAtLeast(0f)
+            if (currentTime >= triggerTime && tSec !in vibratedSet) {
                 // Вибрация
                 vibrateOnce(vibrator)
                 vibratedSet.add(tSec)
