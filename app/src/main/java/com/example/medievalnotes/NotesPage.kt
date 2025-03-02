@@ -25,6 +25,11 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.Build
 import android.util.Log
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.Icon
 
 
 fun Context.findActivity(): Activity? {
@@ -32,6 +37,51 @@ fun Context.findActivity(): Activity? {
         is Activity -> this
         is ContextWrapper -> baseContext.findActivity()
         else -> null
+    }
+}
+
+@Composable
+fun IconButtonSkipBackward(onClick: () -> Unit) {
+    // (1) Иконка из drawable resources
+    // Можно через painterResource(R.drawable.ic_skip_back)
+    val iconPainter = painterResource(R.drawable.ic_skip_back)
+
+    // (2) Размер иконки, например 48.dp
+    val iconSize = 48.dp
+
+    // (3) Сам Composable
+    Box(
+        modifier = Modifier
+            .size(iconSize)
+            .clickable { onClick() }
+    ) {
+        // Рисуем саму иконку
+        Icon(
+            painter = iconPainter,
+            contentDescription = "Skip -5 sec",
+            tint = Color.White, // цвет иконки (можно менять под темную тему)
+            modifier = Modifier.fillMaxSize() // заполнить весь Box
+        )
+    }
+
+}
+@Composable
+fun IconButtonSkipForward(onClick: () -> Unit) {
+    val iconPainter = painterResource(R.drawable.ic_skip_forward)
+    val iconSize = 48.dp
+
+    Box(
+        modifier = Modifier
+            .size(iconSize)
+            .clickable { onClick() }
+    ) {
+
+        Icon(
+            painter = iconPainter,
+            contentDescription = "Skip +5 sec",
+            tint = Color.White,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
 
@@ -63,6 +113,9 @@ fun NotesPage(
         context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
     }
 
+
+    // 1) Храним последнее зафиксированное время (чтобы понять, пошли ли назад)
+    val lastRenderedTime = remember { mutableStateOf(0f) }
     // Запоминаем, для каких `timeSec` уже была вибрация:
     val vibratedSet = remember { mutableSetOf<Float>() }
 
@@ -73,6 +126,11 @@ fun NotesPage(
 
     // Здесь можно просто сделать:
     LaunchedEffect(currentTime) {
+        // Проверка: если время пошло вспять (отмотка назад)
+        if (currentTime < lastRenderedTime.value) {
+            // Очистим vibratedSet, чтобы ноты снова могли вибрировать
+            vibratedSet.clear()
+        }
         // Проверяем все events
         songInfo?.events?.forEach { event ->
             val tSec = event.timeSec
@@ -85,6 +143,8 @@ fun NotesPage(
                 vibratedSet.add(tSec)
             }
         }
+        // Обновляем "предыдущее" время
+        lastRenderedTime.value = currentTime
     }
     Box(
         modifier=Modifier
@@ -111,6 +171,16 @@ fun NotesPage(
             }
         }
 
+
+        // === (2) «Заливка» сверху. Допустим, хотим закрыть 100dp высоты. ===
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)                // <-- высота заливки
+                .background(Color.DarkGray)    // <-- любой вам нужный цвет
+        )
+
+
         val timeText = String.format(Locale.US, "%.1f s", vm.currentTime)
         Text(
             text= timeText,
@@ -124,7 +194,7 @@ fun NotesPage(
         Column(
             modifier=Modifier
                 .align(Alignment.TopEnd)
-                .padding(top=32.dp, end=8.dp)
+                .padding(top=7.dp, end=8.dp)
         ){
             Button(
                 onClick={
@@ -136,7 +206,7 @@ fun NotesPage(
                     contentColor=Color.Black
                 )
             ){
-                Text("Stop")
+                Text("Back")
             }
         }
 
@@ -148,6 +218,38 @@ fun NotesPage(
                 .align(Alignment.TopCenter)
                 .padding(8.dp)
         )
+
+        // (2) Ряд из двух иконок (слева "back", справа "forward"):
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 30.dp),
+            horizontalArrangement = Arrangement.spacedBy(40.dp)
+        ) {
+            // Левая колонка: иконка + подпись "-5sec"
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButtonSkipBackward {
+                    vm.seekBackward5sec()
+                }
+                Text(
+                    text = "-5sec",
+                    color = Color.White,
+                    modifier = Modifier.offset(y = (-10).dp)
+                )
+            }
+
+            // Правая колонка: иконка + подпись "+5sec"
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                IconButtonSkipForward {
+                    vm.seekForward5sec()
+                }
+                Text(
+                    text = "+5sec",
+                    color = Color.White,
+                    modifier = Modifier.offset(y = (-10).dp)
+                )
+            }
+        }
     }
 }
 

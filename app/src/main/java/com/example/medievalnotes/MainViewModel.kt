@@ -77,7 +77,7 @@ class MainViewModel : ViewModel() {
             selectedSongIndex = jsonObj.optInt("selectedSongIndex", -1)
             tempo = jsonObj.optDouble("tempo", 1.0).toFloat()
             startGuitar = jsonObj.optBoolean("startGuitar", false)
-            musicOnPhone = jsonObj.optBoolean("musicOnPhone", false)
+            musicOnPhone = jsonObj.optBoolean("musicOnPhone", true)
             demoMode = jsonObj.optBoolean("demoMode", false)
             vibrationOn = jsonObj.optBoolean("vibrationOn", true)
 
@@ -91,7 +91,7 @@ class MainViewModel : ViewModel() {
     var startGuitar by mutableStateOf(true)
         private set
 
-    var musicOnPhone by mutableStateOf(false)
+    var musicOnPhone by mutableStateOf(true)
         private set
 
     fun updateStartGuitar(context: Context, value: Boolean) {
@@ -244,6 +244,40 @@ class MainViewModel : ViewModel() {
         }
 
         sendUdpStatistics()
+    }
+
+
+
+    /**
+     * Перемотка вперёд на +5 секунд.
+     * Если выходит за пределы длительности песни => идём в конец.
+     */
+    fun seekForward5sec() {
+        val player = exoPlayer ?: return
+        val durationMs = player.duration // длительность трека в мс (или C.TIME_UNSET, если неизвестно)
+        if (durationMs == com.google.android.exoplayer2.C.TIME_UNSET) {
+            // Неизвестна длительность - просто прибавим 5 сек
+            val newPos = player.currentPosition + 5000L
+            player.seekTo(newPos)
+            return
+        }
+        // Иначе известно время
+        val current = player.currentPosition
+        val target = current + 5000L
+        val clamped = minOf(target, durationMs) // ограничиваем
+        player.seekTo(clamped)
+    }
+
+    /**
+     * Перемотка назад на -5 секунд.
+     * Если выходит за пределы начала => идём в 0.
+     */
+    fun seekBackward5sec() {
+        val player = exoPlayer ?: return
+        val current = player.currentPosition
+        val target = current - 5000L
+        val clamped = maxOf(0L, target)
+        player.seekTo(clamped)
     }
 
 
