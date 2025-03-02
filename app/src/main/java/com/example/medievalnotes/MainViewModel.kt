@@ -519,8 +519,18 @@ class MainViewModel : ViewModel() {
                 if (progress in 0f..1f) {
                     val x = (n - minN)/range.toFloat()*(screenWidthPx-noteWidthPx)
                     val top = progress*(screenHeightPx-noteHeightPx)
-                    res.add(NoteDrawInfo(x, top, noteWidthPx, noteHeightPx))
+                    res.add(
+                        NoteDrawInfo(
+                            timeSec = T,
+                            pitch = n,
+                            x = x,
+                            top = top,
+                            width = noteWidthPx,
+                            height = noteHeightPx
+                        )
+                    )
                 }
+
             }
         }
         return res
@@ -599,6 +609,8 @@ class MainViewModel : ViewModel() {
 }
 
 data class NoteDrawInfo(
+    val timeSec: Float,      // <-- идентификатор времени ноты
+    val pitch: Int,          // <-- или нота
     val x: Float,
     val top: Float,
     val width: Float,
