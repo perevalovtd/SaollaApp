@@ -44,8 +44,10 @@ class MainViewModel : ViewModel() {
             put("isDarkTheme", isDarkTheme)
             put("selectedSongIndex", selectedSongIndex)
             put("tempo", tempo)
-            put("playbackMode", playbackMode.name)  // .name для enum
             put("demoMode", demoMode)
+            put("startGuitar", startGuitar)
+            put("musicOnPhone", musicOnPhone)
+            put("vibrationOn", vibrationOn)
         }
 
         // 2) Получаем SharedPreferences
@@ -74,11 +76,10 @@ class MainViewModel : ViewModel() {
             isDarkTheme = jsonObj.optBoolean("isDarkTheme", false)
             selectedSongIndex = jsonObj.optInt("selectedSongIndex", -1)
             tempo = jsonObj.optDouble("tempo", 1.0).toFloat()
-
-            val modeStr = jsonObj.optString("playbackMode", PlaybackMode.APP.name)
-            playbackMode = PlaybackMode.valueOf(modeStr)
-
+            startGuitar = jsonObj.optBoolean("startGuitar", false)
+            musicOnPhone = jsonObj.optBoolean("musicOnPhone", false)
             demoMode = jsonObj.optBoolean("demoMode", false)
+            vibrationOn = jsonObj.optBoolean("vibrationOn", true)
 
         } catch(e: Exception) {
             e.printStackTrace()
@@ -87,9 +88,21 @@ class MainViewModel : ViewModel() {
     }
 
 
-    var playbackMode by mutableStateOf(PlaybackMode.APP)
+    var startGuitar by mutableStateOf(true)
         private set
 
+    var musicOnPhone by mutableStateOf(false)
+        private set
+
+    fun updateStartGuitar(context: Context, value: Boolean) {
+        startGuitar = value
+        saveConfigToFile(context) // сохраним в SharedPreferences (JSON)
+    }
+
+    fun updateMusicOnPhone(context: Context, value: Boolean) {
+        musicOnPhone = value
+        saveConfigToFile(context)
+    }
 
 
     var songList by mutableStateOf<List<SongItem>>(emptyList())
@@ -114,6 +127,8 @@ class MainViewModel : ViewModel() {
         private set
 
     var isDarkTheme by mutableStateOf(false)
+        private set
+    var vibrationOn by mutableStateOf(true)
         private set
 
     // ExoPlayer
@@ -143,11 +158,6 @@ class MainViewModel : ViewModel() {
 
 
 
-    fun changePlaybackMode(context: Context, mode: PlaybackMode) {
-        playbackMode = mode
-        saveConfigToFile(context)
-    }
-
 
 
     override fun onCleared() {
@@ -167,6 +177,11 @@ class MainViewModel : ViewModel() {
         }
         // 2) Считываем массив имён mp3
         //mp3Names = context.resources.getStringArray(R.array.my_songs_array)
+    }
+
+    fun updateVibrationOn(context: Context, value: Boolean) {
+        vibrationOn = value
+        saveConfigToFile(context) // сохранить новое значение в JSON
     }
 
     fun selectSong(context: Context, index: Int) {
@@ -220,15 +235,14 @@ class MainViewModel : ViewModel() {
         currentTime = 0f
         isPlaying = true
 
-        // 2) Создаём/запускаем ExoPlayer
         startMusic(context, idx, fromPage2 = false)
 
-        if (playbackMode == PlaybackMode.GUITAR) {
-            // Выключаем звук
-            exoPlayer?.volume = 0f
-            // Отправляем UDP
+
+        // 3) Если стоит флажок startGuitar => отправляем UDP-сообщение "play"
+        if (startGuitar) {
             sendUdpPlayMessage()
         }
+
         sendUdpStatistics()
     }
 
@@ -460,7 +474,8 @@ class MainViewModel : ViewModel() {
         newPlayer.prepare()
 
         // (6) Применяем громкость, скорость
-        newPlayer.volume = 0.8f
+        val volumeToSet = if (musicOnPhone) 0.8f else 0f
+        newPlayer.volume = volumeToSet
         val params = PlaybackParameters(tempo, 1f)
         newPlayer.playbackParameters = params
 
@@ -589,11 +604,7 @@ class MainViewModel : ViewModel() {
         // Создаём + запускаем ExoPlayer
         startMusic(context, idx, fromPage2 = false)
 
-        // Если Guitar => mute + send UDP
-        if (playbackMode == PlaybackMode.GUITAR) {
-            exoPlayer?.volume = 0f
-            sendUdpPlayMessage()
-        }
+
     }
 
     /**

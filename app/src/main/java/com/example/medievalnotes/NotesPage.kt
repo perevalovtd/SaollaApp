@@ -79,7 +79,9 @@ fun NotesPage(
             val triggerTime = (tSec - 0.075f).coerceAtLeast(0f)
             if (currentTime >= triggerTime && tSec !in vibratedSet) {
                 // Вибрация
-                vibrateOnce(vibrator)
+                if (vm.vibrationOn) {
+                    vibrateOnce(vibrator)
+                }
                 vibratedSet.add(tSec)
             }
         }

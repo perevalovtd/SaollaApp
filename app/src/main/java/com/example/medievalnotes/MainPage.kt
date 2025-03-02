@@ -66,34 +66,51 @@ fun MainPage(
             modifier = Modifier.align(Alignment.Center)
         ) {
 
-            // =========== НОВАЯ СЕКЦИЯ: Playback (App/Guitar) ===========
-            // Заголовок "Playback"
-            Text("Playback", color = textColor)
 
-            // Ряд из двух "радиокнопок": App слева, Guitar справа
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                // Кнопка App
-                PlaybackRadioOption(
-                    label = "App",
-                    isSelected = (vm.playbackMode == PlaybackMode.APP),
-                    onClick = { vm.changePlaybackMode(context, PlaybackMode.APP) },
-                    containerColor = buttonContainerColor,
-                    contentColor = buttonContentColor
+            // -- Start guitar
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Start guitar",
+                    color = textColor,
+                    modifier = Modifier.clickable {
+                        vm.updateStartGuitar(context, !vm.startGuitar)
+                    }
                 )
-
-                // Кнопка Guitar
-                PlaybackRadioOption(
-                    label = "Guitar",
-                    isSelected = (vm.playbackMode == PlaybackMode.GUITAR),
-                    onClick = { vm.changePlaybackMode(context, PlaybackMode.GUITAR) },
-                    containerColor = buttonContainerColor,
-                    contentColor = buttonContentColor
+                Checkbox(
+                    checked = vm.startGuitar,
+                    onCheckedChange = { newValue ->
+                        vm.updateStartGuitar(context, newValue)
+                    },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = checkBoxBoxColor,
+                        uncheckedColor = checkBoxBoxColor,
+                        checkmarkColor = checkMarkColor
+                    )
                 )
             }
-            // =========== КОНЕЦ НОВОЙ СЕКЦИИ ===========
+
+// -- Music on phone
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Music on phone",
+                    color = textColor,
+                    modifier = Modifier.clickable {
+                        vm.updateMusicOnPhone(context, !vm.musicOnPhone)
+                    }
+                )
+                Checkbox(
+                    checked = vm.musicOnPhone,
+                    onCheckedChange = { newValue ->
+                        vm.updateMusicOnPhone(context, newValue)
+                    },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = checkBoxBoxColor,
+                        uncheckedColor = checkBoxBoxColor,
+                        checkmarkColor = checkMarkColor
+                    )
+                )
+            }
+
 
             // Song
             Button(
@@ -127,6 +144,26 @@ fun MainPage(
                         Text(label, color = textColor)
                     }
                 }
+            }
+
+            // --- НОВЫЙ ЧЕКБОКС: Vibration ---
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Vibration:", color = textColor,
+                    modifier = Modifier.clickable {
+                        vm.updateVibrationOn(context, !vm.vibrationOn)
+                    }
+                )
+                Checkbox(
+                    checked = vm.vibrationOn,
+                    onCheckedChange = { newVal ->
+                        vm.updateVibrationOn(context, newVal)
+                    },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = checkBoxBoxColor,
+                        uncheckedColor = checkBoxBoxColor,
+                        checkmarkColor = checkMarkColor
+                    )
+                )
             }
 
             // Demo mode
