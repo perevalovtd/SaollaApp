@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.graphicsLayer
 
 
 fun Context.findActivity(): Activity? {
@@ -86,6 +87,43 @@ fun IconButtonSkipForward(onClick: () -> Unit) {
 }
 
 @Composable
+fun IconButtonPauseResume(
+    vm: MainViewModel
+) {
+    // Если в VM isPlaying=true => иконка паузы,
+    // иначе (isPlaying=false) => иконка Play
+    val iconPainter = if (vm.isPlaying) {
+        painterResource(R.drawable.ic_pause)
+    } else {
+        painterResource(R.drawable.ic_play)
+    }
+
+    val iconSize = 48.dp
+
+    Box(
+        modifier = Modifier
+            .size(iconSize)
+            .clickable {
+                vm.togglePauseResume()
+            }
+    ) {
+        Icon(
+            painter = iconPainter,
+            contentDescription = "Pause/Resume",
+            tint = Color.White,
+            modifier = Modifier
+                // Иконка занимает весь Box
+                .fillMaxSize()
+                // А потом масштабируем содержимое иконки на 1.3
+                .graphicsLayer {
+                    scaleX = 1.3f
+                    scaleY = 1.3f
+                }
+        )
+    }
+}
+
+@Composable
 fun NotesPage(
     navController: NavHostController,
     vm: MainViewModel
@@ -101,6 +139,10 @@ fun NotesPage(
 
         // При выходе
         onDispose {
+            // -- Когда выходим с NotesPage, что бы ни произошло (системная кнопка BACK,
+            // навигация gesture назад и т.д.) — останавливаем музыку/ноты
+            vm.stopPlaying()
+
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
@@ -219,15 +261,18 @@ fun NotesPage(
                 .padding(8.dp)
         )
 
-        // (2) Ряд из двух иконок (слева "back", справа "forward"):
-        Row(
+        Box(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 30.dp),
-            horizontalArrangement = Arrangement.spacedBy(40.dp)
+                .fillMaxWidth()
+                .padding(top = 30.dp)
+                .align(Alignment.TopCenter),
+            contentAlignment = Alignment.Center
         ) {
-            // Левая колонка: иконка + подпись "-5sec"
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // 1) Skip Back
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.offset(x = (-60).dp)
+            ) {
                 IconButtonSkipBackward {
                     vm.seekBackward5sec()
                 }
@@ -238,8 +283,21 @@ fun NotesPage(
                 )
             }
 
-            // Правая колонка: иконка + подпись "+5sec"
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // 2) Pause/Resume (по центру, но сдвигаем вверх)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.offset(y = (-10).dp)  // <-- Поднимаем на 20dp
+            ) {
+                IconButtonPauseResume(vm)
+                // здесь при желании можно добавить подпись
+                // Text("Pause", ...)
+            }
+
+            // 3) Skip Forward
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.offset(x = 60.dp)
+            ) {
                 IconButtonSkipForward {
                     vm.seekForward5sec()
                 }

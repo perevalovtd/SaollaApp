@@ -281,6 +281,26 @@ class MainViewModel : ViewModel() {
     }
 
 
+
+    /**
+     * Переключить «пауза/продолжить» (только на стр.3).
+     * Если сейчас playing => поставим на паузу,
+     * если пауза => продолжить с того же места.
+     */
+    fun togglePauseResume() {
+        val player = exoPlayer ?: return
+        if (player.isPlaying) {
+            // Пауза
+            player.playWhenReady = false
+            isPlaying = false
+        } else {
+            // Возобновить
+            player.playWhenReady = true
+            isPlaying = true
+        }
+    }
+
+
     /****
      * Отправляет статистику: "X Y Z"
      * X = (selectedSongIndex+1) (номер песни, 1-based)
