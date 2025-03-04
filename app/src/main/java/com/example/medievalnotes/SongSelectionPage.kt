@@ -32,6 +32,16 @@ fun SongSelectionPage(
     val trackColor = if (vm.isDarkTheme) Color.DarkGray else Color.LightGray
     val handleColor = if (vm.isDarkTheme) Color.LightGray else Color.DarkGray
 
+    // Добавим DisposableEffect, который вызовется один раз при «отмонтировании» страницы
+    DisposableEffect(Unit) {
+        // onDispose вызывается, когда мы уходим со стр.2 (navigation на page1 или page3)
+        onDispose {
+            // Если пользователь действительно уходит с экрана (а не просто свернул приложение),
+            // мы хотим остановить music.
+            vm.stopPlaying()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()

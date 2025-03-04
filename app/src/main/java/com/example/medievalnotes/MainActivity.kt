@@ -1,6 +1,7 @@
 package com.example.medievalnotes
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -15,23 +16,26 @@ class MainActivity : ComponentActivity() {
 
     lateinit var navController: NavHostController
 
+    // --- 1) onPause (переворот экрана или переход в фон) ---
     override fun onPause() {
         super.onPause()
+        // Если это просто смена конфигурации (переворот экрана), то выходим
+        if (isChangingConfigurations) return
 
-        // Проверим, не ушёл ли пользователь со страницы 3
+        Log.d("MainActivity", "onPause - not changing config => app is going to background")
 
         val currentRoute = navController.currentBackStackEntry?.destination?.route
-
-        // Если сейчас мы на "page3"
-        if (currentRoute == "page3") {
-            // Если isPlaying = true, значит музыка и ноты идут.
-            // Нужно их поставить на паузу.
-            if (mainViewModel.isPlaying) {
-                // Используем вашу функцию togglePauseResume() (или конкретную "pause" логику)
-                mainViewModel.togglePauseResume()
-            }
+        if (currentRoute == "page3" && mainViewModel.isPlaying) {
+            Log.d("MainActivity", "onPause - page 3")
+            mainViewModel.togglePauseResume() // ставим музыку/ноты на паузу
+        }
+        if (currentRoute == "page2" && mainViewModel.isPlaying) {
+            Log.d("MainActivity", "onPause - page 2")
+            mainViewModel.togglePlayOnPage2PauseOnly() // тоже пауза
         }
     }
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

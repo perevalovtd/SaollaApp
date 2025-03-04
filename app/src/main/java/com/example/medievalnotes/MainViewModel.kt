@@ -300,6 +300,15 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun togglePlayOnPage2PauseOnly() {
+        val player = exoPlayer ?: return
+        if (player.isPlaying) {
+            player.playWhenReady = false // пауза
+            isPlaying = false
+        }
+        // если уже на паузе, ничего не делаем
+    }
+
 
     /****
      * Отправляет статистику: "X Y Z"
@@ -378,6 +387,7 @@ class MainViewModel : ViewModel() {
             // Значит, пользователь переключил песню
             // или плеер не был инициализирован => загружаем c нуля
             loadSongAndPlay(context, idx, true)
+            isPlaying = true
             return
         }
 
@@ -386,9 +396,11 @@ class MainViewModel : ViewModel() {
         if (player.isPlaying) {
             // Пауза (сохраняем позицию автоматически)
             player.playWhenReady = false
+            isPlaying = false
         } else {
             // Продолжаем с того места, где остановились
             player.playWhenReady = true
+            isPlaying = true
         }
     }
 
