@@ -128,6 +128,18 @@ fun NotesPage(
     navController: NavHostController,
     vm: MainViewModel
 ) {
+    // -- Обрезаем название до 25 символов --
+    // 1) Получаем исходное название
+    val rawTitle = vm.currentSongInfo?.title ?: "No song loaded"
+    // 2) Устанавливаем максимум
+    val maxLength = 25
+    // 3) Обрезаем
+    val truncatedTitle = if (rawTitle.length > maxLength) {
+        rawTitle.take(maxLength) + "..."
+    } else {
+        rawTitle
+    }
+
     // 1) Получаем текущую Activity через LocalContext
     // Получаем Activity безопасно
     val activity = LocalContext.current.findActivity()
@@ -254,7 +266,7 @@ fun NotesPage(
 
         val songTitle = vm.currentSongInfo?.title ?: "No song loaded"
         Text(
-            text= songTitle,
+            text= truncatedTitle,
             color=Color.White,
             modifier=Modifier
                 .align(Alignment.TopCenter)

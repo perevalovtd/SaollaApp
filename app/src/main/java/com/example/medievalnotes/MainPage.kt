@@ -116,11 +116,15 @@ fun MainPage(
                 modifier = Modifier
                     .weight(1f)            // всё лишнее место займёт этот список
                     .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Start guitar
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,     // центрируем по горизонтали
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             "Start guitar",
                             color = textColor,
@@ -144,7 +148,11 @@ fun MainPage(
 
                 // Music on phone
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,     // центрируем по горизонтали
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             "Music on phone",
                             color = textColor,
@@ -170,10 +178,15 @@ fun MainPage(
                 item {
                     // В одной строке — надпись Tempo: и 3 "кнопки"
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            // Добавляем дополнительные отступы сверху и снизу:
+                            .padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Tempo:", color = textColor)
+                        Spacer(modifier = Modifier.width(8.dp))
                         listOf(1.0f, 0.75f, 0.5f).forEach { t ->
                             val label = when (t) {
                                 1.0f  -> "100%"
@@ -196,7 +209,11 @@ fun MainPage(
 
                 // Vibration
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text("Vibration:", color = textColor,
                             modifier = Modifier.clickable {
                                 vm.updateVibrationOn(context, !vm.vibrationOn)
@@ -218,7 +235,11 @@ fun MainPage(
 
                 // Demo mode
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text("Demo mode:", color = textColor,
                             modifier = Modifier.clickable {
                                 vm.updateDemoMode(context, !vm.demoMode)
@@ -238,7 +259,7 @@ fun MainPage(
             } // конец LazyColumn
 
             // --- (3) В самом низу — кнопка "Play" ---
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(30.dp))
             Button(
                 onClick = {
                     vm.startPlaying(context)
@@ -246,7 +267,8 @@ fun MainPage(
                 },
                 modifier = Modifier
                     .width(200.dp)                     // Ширина кнопки
-                    .align(Alignment.CenterHorizontally),  // Центровка по горизонтали
+                    .align(Alignment.CenterHorizontally)  // Центровка по горизонтали
+                    .offset(y = (-20).dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = buttonContainerColor,
                     contentColor = buttonContentColor
