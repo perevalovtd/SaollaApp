@@ -25,9 +25,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.navigation.NavHostController
-
-
-
+import kotlin.math.min
 
 
 @Composable
@@ -35,17 +33,101 @@ fun MainPage(
     navController: NavHostController,
     vm: MainViewModel
 ) {
-    val backgroundColor = if (vm.isDarkTheme) Color.Black else Color.White
-    val textColor = if (vm.isDarkTheme) Color.White else Color.Black
-    val buttonContainerColor = if (vm.isDarkTheme) Color.DarkGray else Color.LightGray
-    val buttonContentColor = if (vm.isDarkTheme) Color.White else Color.Black
+    // --- (1) Цвета для ФОНА (фон всего экрана) ---
+    val backgroundColor = if (vm.isDarkTheme) {
+        // (как было в dark theme)
+        Color(0xff000000)
+    } else {
+        // (НОВО для LightTheme)
+        Color(0xFFEAE2D5) // #eae2d5
+    }
 
+    // --- (2) Цвет текста ---
+    val textColor = if (vm.isDarkTheme) {
+        // Тёмная тема — текст белый
+        Color.White
+    } else {
+        // Светлая тема
+        Color.Black
+    }
+
+    // --- (3) Фон области «настроек» ---
+    val settingsAreaBgColor = if (vm.isDarkTheme) {
+        // (как было)
+        Color(0xff1A1A1A)
+    } else {
+        // (НОВО для LightTheme) #eeff8f
+        Color(0xFFEEFF8F)
+    }
+
+    // --- (4) Цвет текста внутри области «настроек» ---
+    val settingsTextColor = if (vm.isDarkTheme) {
+        // в тёмной теме пусть будет как прежде (White)
+        Color.White
+    } else {
+        // (НОВО для LightTheme)
+        Color.Black
+    }
+
+    // --- (5) Цвета кнопок Light/Dark (оставляем как было) ---
     val themeButtonText = if (vm.isDarkTheme) "Light" else "Dark"
     val themeButtonContainer = if (vm.isDarkTheme) Color.White else Color.Black
     val themeButtonContent = if (vm.isDarkTheme) Color.Black else Color.White
 
-    val checkBoxBoxColor = if (vm.isDarkTheme) Color.DarkGray else Color.Black
+    // --- (6) Кнопка Song ---
+    // В тёмной теме (dark) оставим как раньше (или какое-то своё),
+    // а в светлой — #e73b85 + белый текст:
+    val songButtonContainer = if (vm.isDarkTheme) {
+        // (как раньше в dark)
+        Color.DarkGray
+    } else {
+        // (НОВО для LightTheme) #e73b85
+        Color(0xFFE73B85)
+    }
+    val songButtonContent = if (vm.isDarkTheme) {
+        // (как раньше)
+        Color.White
+    } else {
+        // (НОВО для LightTheme)
+        Color.White // на розовом фоне белый текст
+    }
+
+    // --- (7) Кнопка Play ---
+    // Аналогично: в dark теме старые цвета,
+    // в light => фон #ff8d08, текст белый
+    val playButtonContainer = if (vm.isDarkTheme) {
+        // (как было в dark)
+        Color.DarkGray
+    } else {
+        // (НОВО для LightTheme) #ff8d08
+        Color(0xFFFF8D08)
+    }
+    val playButtonContent = if (vm.isDarkTheme) {
+        // (как было)
+        Color.White
+    } else {
+        // (НОВО для LightTheme)
+        Color.White
+    }
+
+    // --- (8) Цвет checkBox (оставляем как было) ---
+    val checkBoxBoxColor = if (vm.isDarkTheme) Color.DarkGray else Color(0xFF5C3926)
     val checkMarkColor = Color.White
+
+    // --- (9) Цвета скроллбара (track/handle) (как было) ---
+    val trackColor = if (vm.isDarkTheme) {
+        Color(0xFF343434)
+    } else {
+        Color(0xFF91F5D8)
+    }
+    val handleColor = if (vm.isDarkTheme) {
+        Color(0xFF646464)
+    } else {
+        Color(0xFF96B5D2)
+    }
+
+    // ------------------------------------------------------------
+
 
     val context = LocalContext.current
 
@@ -68,19 +150,19 @@ fun MainPage(
         rawTitle
     }
 
+    val buttonContainerColor = if (vm.isDarkTheme) {
+        Color.DarkGray
+    } else {
+        // Пусть будет #cebfa8 (слегка потемнее, чем фон #eae2d5)
+        Color(0xFFCEBFA8) // фон кнопок/блоков
+    }
+    val buttonContentColor = if (vm.isDarkTheme) {
+        Color.White
+    } else {
+        // Тёмно-коричневый
+        Color(0xFF442B1A)
+    }
 
-    // Цвета для скроллбара
-    val trackColor = if (vm.isDarkTheme) {
-        Color(0xFF343434)  // #123456
-    } else {
-        Color(0xFFe6e6e6)  // #E1E1E1 (яркий)
-    }
-    // ARGB = 0xAARRGGBB
-    val handleColor = if (vm.isDarkTheme) {
-        Color(0xFF646464)  //
-    } else {
-        Color(0xFFc8c8c8)  //
-    }
 
     // --- 2) Заводим ScrollState
     val scrollState = rememberScrollState()
@@ -91,7 +173,7 @@ fun MainPage(
 
     LaunchedEffect(totalContentHeightPx.value, viewportHeightPx.value) {
         // Печатаем в лог для отладки
-        Log.d("ScrollDebug", "totalContentHeightPx=${totalContentHeightPx.value}, viewportHeightPx=${viewportHeightPx.value}")
+        //Log.d("ScrollDebug", "totalContentHeightPx=${totalContentHeightPx.value}, viewportHeightPx=${viewportHeightPx.value}")
     }
 
 
@@ -109,8 +191,8 @@ fun MainPage(
             Button(
                 onClick = { navController.navigate("page2") },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = buttonContainerColor,
-                    contentColor = buttonContentColor
+                    containerColor = songButtonContainer,
+                    contentColor = songButtonContent
                 )
             ) {
                 Text("Song: $truncatedTitle")
@@ -153,6 +235,17 @@ fun MainPage(
                         viewportHeightPx.value = coords.size.height.toFloat()
                     }
             ) {
+
+                val realHeightPx = min(totalContentHeightPx.value, viewportHeightPx.value)
+                val realHeightDp = with(LocalDensity.current) { realHeightPx.toDp() }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .fillMaxWidth()
+                        .height(realHeightDp)
+                        .background(settingsAreaBgColor)
+                )
+
                 // (3B) Прокручиваемый Column
                 Column(
                     modifier = Modifier
@@ -307,6 +400,8 @@ fun MainPage(
 
 
 
+
+
                 val contentH = totalContentHeightPx.value.coerceAtLeast(1f)
                 val viewH    = viewportHeightPx.value.coerceAtLeast(1f)
                 // Если всё умещается => НЕ рисуем скроллбар
@@ -385,8 +480,8 @@ fun MainPage(
                     .align(Alignment.CenterHorizontally)  // Центровка по горизонтали
                     .offset(y = (-20).dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = buttonContainerColor,
-                    contentColor = buttonContentColor
+                    containerColor = playButtonContainer,
+                    contentColor = playButtonContent
                 )
             ) {
                 Text("Play")
