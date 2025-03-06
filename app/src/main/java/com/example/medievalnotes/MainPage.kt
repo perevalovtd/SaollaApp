@@ -1,10 +1,14 @@
 package com.example.medievalnotes
 
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -14,10 +18,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import androidx.navigation.NavHostController
+
+
 
 
 
@@ -60,6 +69,32 @@ fun MainPage(
     }
 
 
+    // Цвета для скроллбара
+    val trackColor = if (vm.isDarkTheme) {
+        Color(0xFF343434)  // #123456
+    } else {
+        Color(0xFFe6e6e6)  // #E1E1E1 (яркий)
+    }
+    // ARGB = 0xAARRGGBB
+    val handleColor = if (vm.isDarkTheme) {
+        Color(0xFF646464)  //
+    } else {
+        Color(0xFFc8c8c8)  //
+    }
+
+    // --- 2) Заводим ScrollState
+    val scrollState = rememberScrollState()
+
+    // --- 3) Храним высоты: «высота контента» и «высота viewport» (в px).
+    val totalContentHeightPx = remember { mutableStateOf(0f) }
+    val viewportHeightPx     = remember { mutableStateOf(0f) }
+
+    LaunchedEffect(totalContentHeightPx.value, viewportHeightPx.value) {
+        // Печатаем в лог для отладки
+        Log.d("ScrollDebug", "totalContentHeightPx=${totalContentHeightPx.value}, viewportHeightPx=${viewportHeightPx.value}")
+    }
+
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -99,27 +134,39 @@ fun MainPage(
             }
         }
 
-        // Общая колонка на весь экран
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),       // боковые отступы при желании
+                .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Добавим Spacer, чтобы настройки не «наезжали» на верхние кнопки
+            // Отступ сверху (чтобы не «наезжать» на верхние кнопки)
             Spacer(modifier = Modifier.height(80.dp))
 
-            // --- (2) Прокручиваемая область со всеми настройками ---
-            // Задаём вес (weight(1f)), чтобы занять «среднюю» часть экрана,
-            // и используем LazyColumn (или Column + verticalScroll).
-            LazyColumn(
+            // (3A) Box под список (по высоте = weight(1f)), + скроллбар
+            Box(
                 modifier = Modifier
-                    .weight(1f)            // всё лишнее место займёт этот список
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .weight(1f)
+                    .fillMaxWidth()
+                    // Здесь мы измеряем «высоту окна» (т. е. сколько места отведено под список)
+                    .onGloballyPositioned { coords ->
+                        viewportHeightPx.value = coords.size.height.toFloat()
+                    }
             ) {
+                // (3B) Прокручиваемый Column
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(scrollState)
+                        .fillMaxSize()
+
+                        // Когда контент отрисован, узнаём его полную высоту
+                        .onGloballyPositioned { coords ->
+                            val contentH = coords.size.height.toFloat()
+                            totalContentHeightPx.value = contentH
+                        }
+                ) {
                 // Start guitar
-                item {
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,     // центрируем по горизонтали
@@ -144,10 +191,10 @@ fun MainPage(
                             )
                         )
                     }
-                }
+
 
                 // Music on phone
-                item {
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,     // центрируем по горизонтали
@@ -172,10 +219,10 @@ fun MainPage(
                             )
                         )
                     }
-                }
+
 
                 // Tempo
-                item {
+
                     // В одной строке — надпись Tempo: и 3 "кнопки"
                     Row(
                         modifier = Modifier
@@ -205,10 +252,10 @@ fun MainPage(
                             }
                         }
                     }
-                }
+
 
                 // Vibration
-                item {
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
@@ -231,10 +278,10 @@ fun MainPage(
                             )
                         )
                     }
-                }
+
 
                 // Demo mode
-                item {
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
@@ -255,8 +302,76 @@ fun MainPage(
                             )
                         )
                     }
-                }
+
             } // конец LazyColumn
+
+
+
+                val contentH = totalContentHeightPx.value.coerceAtLeast(1f)
+                val viewH    = viewportHeightPx.value.coerceAtLeast(1f)
+                // Если всё умещается => НЕ рисуем скроллбар
+                // (contentH <= viewH значит прокрутки не нужно)
+                if (contentH > viewH) {
+
+                val scrollPx  = scrollState.value.toFloat()
+                val maxScroll = scrollState.maxValue.toFloat().coerceAtLeast(0f)
+
+                val fractionScroll = if (maxScroll > 0f) (scrollPx / maxScroll) else 0f
+                val fractionVisible = (viewH / contentH).coerceIn(0f, 1f)
+
+                // Трек: по высоте совпадает с Box => matchParentSize().width(8.dp)
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()    // покрываем весь Box
+                ) {
+                    // Сама полоска (track)
+                    // пусть она прижата к правому краю, занимая всю высоту
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .width(8.dp)
+                            .fillMaxHeight() // высота = высота Box
+                            .background(trackColor)
+                    )
+
+                    // Ручка (handle)
+                    // Высота = fractionVisible * (высота Box)
+                    // offsetY = fractionScroll * (BoxHeight - handleHeight)
+                    // => для вычисления px нужна onGloballyPositioned или matchParentSize + offset
+                    // Можно через .align(...), но проще .offset() в px.
+
+                    // Для вычисления offset() придётся знать «boxHeightPx».
+                    // Можем ещё раз onGloballyPositioned(...). Или же layout-фазы.
+                    // Проще: завести ещё один вспомогательный State, куда пишем высоту Box (viewportHeightPx).
+                    val boxHeightPx = viewportHeightPx.value
+
+                    val handleHeightPx = fractionVisible * boxHeightPx
+                    // trackHeightPx = boxHeightPx
+                    val handleTopPx    = fractionScroll * (boxHeightPx - handleHeightPx)
+
+                    // Рисуем ручку
+                    Box(
+                        modifier = Modifier
+                            .offset {
+                                // offset = (x=0, y= handleTopPx)
+                                // offset принимает IntOffset => округлим
+                                val offsetY = handleTopPx.toInt()
+                                androidx.compose.ui.unit.IntOffset(x = 0, y = offsetY)
+                            }
+                            .align(Alignment.TopEnd)
+                            .width(8.dp)
+                            .height(
+                                with(LocalDensity.current) {
+                                    handleHeightPx.toDp()
+                                }
+                            )
+                            .background(handleColor)
+                    )
+                }
+                    }
+            }
+
+
 
             // --- (3) В самом низу — кнопка "Play" ---
             Spacer(modifier = Modifier.height(30.dp))
