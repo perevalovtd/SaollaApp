@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.compose.ui.platform.LocalContext
-
+import androidx.compose.ui.res.painterResource
 
 
 @Composable
@@ -114,13 +115,14 @@ fun SongSelectionPage(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(end = 20.dp),  // чтобы было место под скролл
+                        .padding(start = 0.dp, end = 0.dp),  // чтобы было место под скролл
                     state = listState
                 ) {
 
                     items(vm.songList.size) { index ->
                         val songItem = vm.songList[index]
                         val isSelected = (index == vm.selectedSongIndex)
+                        val isLoadedSong = (vm.currentlyLoadedIndex == index)
                         val bg = if (isSelected) btnContainer else Color.Transparent
 
                         val context = LocalContext.current
@@ -134,7 +136,30 @@ fun SongSelectionPage(
                                 }
                                 .padding(8.dp)
                         ) {
-                            Text(songItem.title, color = textColor)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (isLoadedSong) {
+                                    // Если именно эта песня в плеере
+                                    val iconPainter = if (vm.isPlaying) {
+                                        painterResource(R.drawable.ic_song_playing) // иконка1
+                                    } else {
+                                        painterResource(R.drawable.ic_song_paused)  // иконка2
+                                    }
+                                    // Отрисовываем иконку 8×8 dp
+                                    Icon(
+                                        painter = iconPainter,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = textColor // или другой цвет
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                } else {
+                                    // Иначе иконку не показываем (или можно Spacer(8.dp), как "пустое место")
+                                    // Spacer(modifier = Modifier.width(18.dp)) // например, чтобы выровнять остальное
+                                }
+
+                                // Теперь само название, сдвинутое на 10 dp (или меньше, если уже Spacer сверху)
+                                Text(songItem.title, color = textColor)
+                            }
                         }
                     }
                 }

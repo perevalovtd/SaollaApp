@@ -155,6 +155,8 @@ fun NotesPage(
             // навигация gesture назад и т.д.) — останавливаем музыку/ноты
             vm.stopPlaying()
 
+            vm.sendUdpStopMessage()
+
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }

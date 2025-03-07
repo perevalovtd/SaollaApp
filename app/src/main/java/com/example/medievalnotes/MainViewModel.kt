@@ -133,7 +133,7 @@ class MainViewModel : ViewModel() {
 
     // ExoPlayer
     private var exoPlayer: ExoPlayer? = null
-    private var currentlyLoadedIndex: Int? = null
+    var currentlyLoadedIndex: Int? = null
 
     private var statsJob: Job? = null
 
@@ -254,18 +254,24 @@ class MainViewModel : ViewModel() {
      */
     fun seekForward5sec() {
         val player = exoPlayer ?: return
-        val durationMs = player.duration // длительность трека в мс (или C.TIME_UNSET, если неизвестно)
+        val durationMs =
+            player.duration // длительность трека в мс (или C.TIME_UNSET, если неизвестно)
         if (durationMs == com.google.android.exoplayer2.C.TIME_UNSET) {
             // Неизвестна длительность - просто прибавим 5 сек
             val newPos = player.currentPosition + 5000L
             player.seekTo(newPos)
-            return
+        } else {
+            // Иначе известно время
+            val current = player.currentPosition
+            val target = current + 5000L
+            val clamped = minOf(target, durationMs) // ограничиваем
+            player.seekTo(clamped)
         }
-        // Иначе известно время
-        val current = player.currentPosition
-        val target = current + 5000L
-        val clamped = minOf(target, durationMs) // ограничиваем
-        player.seekTo(clamped)
+        // -- (НОВО) После seekTo берём фактическую позицию:
+        val newPosMs = player.currentPosition
+        val newPosSec = newPosMs / 1000f
+        // Отправляем
+        sendUdpTimeMessage(newPosSec)
     }
 
     /**
@@ -278,6 +284,11 @@ class MainViewModel : ViewModel() {
         val target = current - 5000L
         val clamped = maxOf(0L, target)
         player.seekTo(clamped)
+        // -- (НОВО) После seekTo берём фактическую позицию:
+        val newPosMs = player.currentPosition
+        val newPosSec = newPosMs / 1000f
+        // Отправляем
+        sendUdpTimeMessage(newPosSec)
     }
 
 
@@ -293,12 +304,15 @@ class MainViewModel : ViewModel() {
             // Пауза
             player.playWhenReady = false
             isPlaying = false
+            sendUdpPauseMessage()
         } else {
             // Возобновить
             player.playWhenReady = true
             isPlaying = true
+            sendUdpContinueMessage()
         }
     }
+
 
     fun togglePlayOnPage2PauseOnly() {
         val player = exoPlayer ?: return
@@ -339,6 +353,27 @@ class MainViewModel : ViewModel() {
     }
 
 
+    private fun sendUdpTimeMessage(timeSec: Float) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val inet = InetAddress.getByName(statsIpStr)  // тот же IP, что и раньше (192.168.4.1)
+                val port = statsPort                          // тот же порт 12345 (или ваш)
+
+                // Формируем строку типа "time 18.5" (сколько нужно знаков после запятой — на ваше усмотрение)
+                val msg = "time %.4f".format(timeSec)
+
+                val data = msg.toByteArray()
+                DatagramSocket().use { socket ->
+                    val packet = DatagramPacket(data, data.size, inet, port)
+                    socket.send(packet)
+                }
+                Log.d("UDPTime", "Sent time msg: '$msg' to $statsIpStr:$statsPort")
+            } catch(e: Exception) {
+                Log.e("UDPTime", "UDP time error: ${e.message}")
+            }
+        }
+    }
+
     private fun sendUdpPlayMessage() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -362,6 +397,72 @@ class MainViewModel : ViewModel() {
             }
         }
     }
+
+
+    fun sendUdpStopMessage() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val ipStr = "192.168.4.1"
+                val port = 12345
+                val inet = InetAddress.getByName(ipStr)
+
+                val message = "stop"
+                val data = message.toByteArray()
+
+                DatagramSocket().use { socket ->
+                    val packet = DatagramPacket(data, data.size, inet, port)
+                    socket.send(packet)
+                }
+                Log.d("UDPTest", "Sent 'stop' to $ipStr:$port")
+            } catch(e: Exception) {
+                Log.e("UDPTest", "UDP error: ${e.message}")
+            }
+        }
+    }
+
+    fun sendUdpPauseMessage() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val ipStr = "192.168.4.1"
+                val port = 12345
+                val inet = InetAddress.getByName(ipStr)
+
+                val message = "pause"
+                val data = message.toByteArray()
+
+                DatagramSocket().use { socket ->
+                    val packet = DatagramPacket(data, data.size, inet, port)
+                    socket.send(packet)
+                }
+                Log.d("UDPPause", "Sent 'pause' to $ipStr:$port")
+            } catch(e: Exception) {
+                Log.e("UDPPause", "UDP pause error: ${e.message}")
+            }
+        }
+    }
+
+    fun sendUdpContinueMessage() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val ipStr = "192.168.4.1"
+                val port = 12345
+                val inet = InetAddress.getByName(ipStr)
+
+                val message = "continue"
+                val data = message.toByteArray()
+
+                DatagramSocket().use { socket ->
+                    val packet = DatagramPacket(data, data.size, inet, port)
+                    socket.send(packet)
+                }
+                Log.d("UDPContinue", "Sent 'continue' to $ipStr:$port")
+            } catch(e: Exception) {
+                Log.e("UDPContinue", "UDP continue error: ${e.message}")
+            }
+        }
+    }
+
+
 
     fun stopPlaying() {
         isPlaying = false
